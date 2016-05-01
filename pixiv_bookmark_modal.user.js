@@ -60,7 +60,7 @@ function showBookmarkModal(id) {
 
 			location.assign('javascript: pixiv.bookmarkModal.initialize();');
 
-			window.setTimeout(=> {
+			window.setTimeout(() => {
 				window.postMessage('pixiv_auto_tag:generateButtons', location.origin);
 				window.postMessage('pixiv_auto_tag:autoTag', location.origin);
 			}, 700);
