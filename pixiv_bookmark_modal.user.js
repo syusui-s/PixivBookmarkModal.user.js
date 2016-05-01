@@ -148,11 +148,12 @@ function *showBookmarkModal(id) {
 	window.postMessage('pixiv_auto_tag:autoTag', location.origin);
 }
 
-(function () {
-	const query = '#f > div.display_editable_works > ul > li > a.edit-work';
+function rewriteEditLinks() {
+	const query = 'a.edit-work';
 	const editLinks = document.querySelectorAll(query);
 
 	Array.prototype.forEach.call(editLinks, (link) => {
+		if (link.href.match(/^javascript/)) { return; }
 		const id = link.href.match(/_id=(\d+)/)[1];
 
 		link.addEventListener('click', (ev) => {
@@ -161,4 +162,12 @@ function *showBookmarkModal(id) {
 		});
 		link.href = 'javascript:void(0);';
 	});
+}
+
+(function () {
+	document.addEventListener('AutoPagerize_DOMNodeInserted', rewriteEditLinks, false);
+	document.addEventListener('AutoPatchWork.DOMNodeInserted', rewriteEditLinks, false);
+	document.addEventListener('AutoPagerAfterInsert', rewriteEditLinks, false);
+
+	rewriteEditLinks();
 })();
