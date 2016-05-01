@@ -58,7 +58,12 @@ function showBookmarkModal(id) {
 			removeBookmarkModalContainer();
 			document.body.appendChild(modalContainer);
 
-			pixiv.bookmarkModal.initialize();
+			location.assign('javascript: pixiv.bookmarkModal.initialize();');
+
+			window.setTimeout(=> {
+				window.postMessage('pixiv_auto_tag:generateButtons', location.origin);
+				window.postMessage('pixiv_auto_tag:autoTag', location.origin);
+			}, 700);
 		},
 		error => {
 			window.alert('failed to fetch illust page');
@@ -67,17 +72,19 @@ function showBookmarkModal(id) {
 }
 
 (function () {
-	const editLinkNodes =
-		document.querySelectorAll('#f > div.display_editable_works > ul > li > a.edit-work');
-	const editLinks = Array.prototype.slice.call(editLinkNodes);
+	const query = '#f > div.display_editable_works > ul > li > a.edit-work';
+	const editLinks = document.querySelectorAll(query);
 
-	editLinks.forEach((link) => {
-		const id = link.href.match(/_id=(\d+)/)[1];
+	const editBookmark = (ev) => {
+		const id = ev.target.href.match(/_id=(\d+)/)[1];
+		showBookmarkModal(id);
+		ev.preventDefault();
+	};
 
-		link.addEventListener('click', ev => {
-			showBookmarkModal(id);
-			ev.preventDefault();
-		});
+	const setListener = (link) => {
+		link.addEventListener('click', editBookmark);
 		link.href = 'javascript:void(0);';
-	});
+	};
+
+	Array.prototype.forEach.call(editLinks, setListener);
 })();
