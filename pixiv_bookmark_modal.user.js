@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              PixivBookmarkModal.user.js
 // @description       Pixivのブックマークモーダルをタグ一覧ページで表示する
-// @include           http://www.pixiv.net/bookmark.php?*
+// @include           http://www.pixiv.net/bookmark.php*
 // @run-at            document-end
 // @version           0.0.1
 // ==/UserScript==
