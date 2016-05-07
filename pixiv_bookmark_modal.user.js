@@ -212,7 +212,7 @@ function onBookmarkSubmit(ev) {
 		document.body.removeChild(overlay);
 		window.removeEventListener('scroll', preventScroll);
 
-		// remove a work if its tag doesn't have a bookmark page tag;
+		// change bgcolor if its tag doesn't have a bookmark page tag;
 		const qstr_match = location.href.match(/[?&]tag=([^&#]*)/);
 		const input_tag = document.querySelector('#input_tag');
 
@@ -228,7 +228,7 @@ function onBookmarkSubmit(ev) {
 			});
 
 			if (found) {
-				works.removeChild(found.parentNode);
+				found.parentNode.style.backgroundColor = 'rgba(0, 0, 0, 0.4)';
 			}
 		}
 
