@@ -103,11 +103,13 @@ function formToObj(node) {
 
 	const inputs = node.querySelectorAll('input');
 	Array.prototype.forEach.call(inputs, (input) => {
-		const type = input.value;
+		const type = input.type;
 
-		if (/^radio$/i.test(type) && input.checked) {
+		console.log(type);
+		console.log(input);
+		if (/^(button|submit|reset|image)$/i.test(type)) {
 			return;
-		} else if (/^button|submit|reset|image$/.test(type)) {
+		} else if (/^radio$/i.test(type) && !input.checked) {
 			return;
 		}
 
@@ -265,7 +267,7 @@ function* setBookmarkTags(id) {
 	if (qstr_match) {
 		const qstr = 'div.bookmark-add-modal input[type="radio"][value="1"]';
 		const hide_button = document.querySelector(qstr);
-		hide_button.checked = true;
+		hide_button.click();
 	}
 }
 
