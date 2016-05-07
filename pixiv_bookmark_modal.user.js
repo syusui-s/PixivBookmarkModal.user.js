@@ -85,7 +85,7 @@ function polling(func, polling_time, times, timeout) {
 }
 
 function sleep(timeout) {
-	if (! typeof timeout === "number" ) {
+	if (! typeof timeout === "number"){
 		return Promise.reject('sleep called with an invalid argument');
 	}
 
@@ -208,7 +208,7 @@ function onBookmarkSubmit(ev) {
 		yield postForm(form.action, formObj);
 
 		overlay.textContent = '完了しました!';
-		yield sleep(500);
+		yield sleep(200);
 		document.body.removeChild(overlay);
 		window.removeEventListener('scroll', preventScroll);
 
@@ -255,6 +255,13 @@ function* setBookmarkTags(id) {
 	const tags = bookmark_tag.value;
 	if (tags.length > 0) {
 		input_tag.value = tags;
+	}
+
+	const qstr_match = location.href.match(/[?&]rest=hide/);
+	if (qstr_match) {
+		const qstr = 'div.bookmark-add-modal input[type="radio"][value="1"]';
+		const hide_button = document.querySelector(qstr);
+		hide_button.checked = true;
 	}
 }
 
