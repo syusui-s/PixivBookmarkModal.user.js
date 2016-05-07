@@ -132,10 +132,14 @@ function formToObj(node) {
 function serializeForm(obj) {
 	let result = Array.prototype.map.call(
 		Object.keys(obj),
-		(key) => `${key}=${obj[key]}`
+		(key) => {
+			const k = encodeURIComponent(key);
+			const v = encodeURIComponent(obj[key]);
+			return `${k}=${v}`;
+		}
 	).join('&');
 	
-	return encodeURI(result);
+	return result;
 }
 
 function promiseXHR(method, url, form) {
