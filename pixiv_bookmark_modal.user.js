@@ -105,8 +105,6 @@ function formToObj(node) {
 	Array.prototype.forEach.call(inputs, (input) => {
 		const type = input.type;
 
-		console.log(type);
-		console.log(input);
 		if (/^(button|submit|reset|image)$/i.test(type)) {
 			return;
 		} else if (/^radio$/i.test(type) && !input.checked) {
