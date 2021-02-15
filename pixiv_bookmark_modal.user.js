@@ -1,326 +1,119 @@
 // ==UserScript==
-// @name              PixivBookmarkModal.user.js
-// @description       Pixivのブックマークモーダルをタグ一覧ページで表示する
-// @include           http://www.pixiv.net/bookmark.php*
-// @run-at            document-end
-// @version           0.0.1
+// @name         PixivBookmarkModal.user.js
+// @author       Shusui Moyatani (@syusui-s)
+// @description  Pixivのブックマークモーダルをタグ一覧ページ/作品ページで表示する
+// @namespace    https://github.com/syusui-s/PixivBookmarkModal.user.js
+// @homepage     https://syusui-s.github.io/PixivBookmarkModal.user.js
+// @version      1.0.0
+// @match        https://www.pixiv.net/artworks/*
+// @match        https://www.pixiv.net/novel/show.php*
+// @match        https://www.pixiv.net/users/*/bookmarks/artworks*
+// @match        https://www.pixiv.net/users/*/bookmarks/novels*
+// @grant        none
+// @updateURL    https://syusui-s.github.io/PixivBookmarkModal.user.js/pixiv_bookmark_modal.user.js
+// @downloadURL  https://syusui-s.github.io/PixivBookmarkModal.user.js/pixiv_bookmark_modal.user.js
+// @supportURL   https://syusui-s.github.io/PixivBookmarkModal.user.js
+// @run-at       document-start
 // ==/UserScript==
 
-'use strict';
+(function() {
+  'use strict';
+  const useRef = (initial = undefined) => ({ current: undefined });
+  const el = (name, ...args) => {
+    const props = typeof args[0] === 'object' ? args[0] : {};
+    const c = typeof args[0] !== 'object' ? args[0] : args[1];
+    const children = c instanceof Array ? c : c != null ? [c] : [];
+    const e = name ? document.createElement(name) : document.createDocumentFragment();
+    [...Object.entries(props || {})].forEach(([p, v]) => {
+      if (p === 'class' || p === 'className') e.className = v;
+      else if (p.startsWith('on')) e.addEventListener(p.slice(2), v);
+      else if (p === 'style' && typeof v === 'object') Object.assign(e.style, v);
+      else if (p === 'ref') v.current = e;
+      else e[p] = v;
+    });
+    const add = (c) => {
+      let r;
+      if (c instanceof HTMLElement || c instanceof DocumentFragment) r = c;
+      else if (c instanceof Array) return c.forEach(add);
+      else if (c != null) r = document.createTextNode(c);
+      else return;
+      e.appendChild(r);
+    };
+    children.forEach(add);
+    return e;
+  };
 
-const modalContainerId = 'bookark-modal-container';
+  const bookmarkUrl = () => {
+    const url = new URL(location.href);
+    if (url.pathname.startsWith('/artworks/')) {
+      const id = new URL(location.href).pathname.match(/^\/artworks\/(\d+)$/)?.[1];
+      if (!id) throw new Error('Failed to obtain artwork id from URL');
+      return `https://www.pixiv.net/bookmark_add.php?type=illust&illust_id=${id}`;
+    } else if (url.pathname === '/novel/show.php') {
+      const id = url.searchParams.get('id');
+      if (!id) throw new Error('Failed to obtain novel id from URL');
+      return `https://www.pixiv.net/bookmark_add.php?id=${id}`;
+    } else {
+      throw new Error('bookmarkUrl() is not non-exhaustive');
+    }
+  };
 
-const overlay = document.createElement('div');
-overlay.style.position  = 'fixed';
-overlay.style.top       = '0';
-overlay.style.left      = '0';
-overlay.style.height    = '200%';
-overlay.style.width     = '100%';
-overlay.style.zIndex    = '99999';
-overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-overlay.style.backgroundAttachment = 'fixed';
-overlay.style.backgroundRepeat = 'no-repeat';
-overlay.style.backgroundPosition = 'center center';
-overlay.style.paddingTop = '10px';
-overlay.style.textAlign = 'center';
-overlay.style.fontSize = '20px';
-overlay.style.fontWeight = '900';
-overlay.style.color = 'white';
+  const openModal = (url) => {
+    const iframeRef = useRef();
 
-function async(gene, previous_result) {
-	const result = gene.next(previous_result);
+    const close = () => root.remove();
 
-	if (result.done) return;
+    const root = el(
+      'div', {
+        style: { zIndex: 999, position: 'fixed', top: 0, left: 0, height: '100vh', width: '100vw', background: 'rgba(0,0,0,0.5)', },
+        onclick: close,
+      }, [
+        el('iframe', { src: url, style: { height: '95vh', width: '80vw', margin: '0 10vw', border: 'none' }, ref: iframeRef })
+      ],
+    );
+    document.body.appendChild(root);
 
-	const value = result.value;
+    if (iframeRef.current) {
+      iframeRef.current.focus();
+      const w = iframeRef.current.contentWindow;
+      w.addEventListener('DOMContentLoaded', (ev) => {
+        w.document.body.style.paddingTop = '70px';
+        w.document.querySelector('#js-mount-point-header').style.display = 'none';
+        w.document.querySelector('#header-banner').style.top = '10px';
+        w.addEventListener('unload', () => close());
+      });
+    }
 
-	if (value instanceof Promise) {
-		value.then((promise_result) => {
-			async(gene, promise_result);
-		}, (err) => {
-			console.log(err);
-		});
+    window.addEventListener('keydown', ev => {
+      if (ev.key == 'Escape') {
+        ev.stopPropagation();
+        ev.preventDefault();
+        close();
+      }
+    });
+  };
 
-		value.catch((err) => {
-			console.log(err);
-		});
-	} else {
-		async(gene, value);
-	}
-}
-
-function polling(func, polling_time, times, timeout) {
-	if (! ( func instanceof Function &&
-			typeof polling_time === "number" &&
-			typeof times === "number" &&
-			typeof timeout === "number"
-		) ) {
-		return Promise.reject('polling called with invalid argument(s)');
-	}
-
-	return new Promise((resolve, reject) => {
-		let count = 0;
-		let done  = false;
-
-		let id = window.setInterval(() => {
-			if ( func() ) {
-				done = true;
-				window.clearInterval(id);
-				resolve();
-			} else if (count < times) {
-				count++;
-			} else {
-				window.clearInterval(id);
-				reject('polling reach a maximum retry count');
-			}
-		}, polling_time);
-
-		window.setTimeout(() => {
-			if (!done) {
-				window.clearInterval(id);
-				reject('polling timeout');
-			}
-		}, timeout);
-	});
-}
-
-function sleep(timeout) {
-	if (! typeof timeout === "number"){
-		return Promise.reject('sleep called with an invalid argument');
-	}
-
-	return new Promise((resolve, reject) => {
-		window.setTimeout(() => resolve(), timeout);
-	});
-}
-
-function formToObj(node) {
-	if (! (node instanceof HTMLFormElement)) {
-		return null;
-	}
-
-	const result = {};
-
-	const inputs = node.querySelectorAll('input');
-	Array.prototype.forEach.call(inputs, (input) => {
-		const type = input.type;
-
-		if (/^(button|submit|reset|image)$/i.test(type)) {
-			return;
-		} else if (/^radio$/i.test(type) && !input.checked) {
-			return;
-		}
-
-		result[input.name] = input.value;
-	});
-
-	const selects = node.querySelectorAll('select');
-	Array.prototype.forEach.call(selects, (select) => {
-		const options = select.querySelectorAll('option');
-
-		Array.prototype.filter.call(
-			options,
-			(e) => e.selected
-		).forEach((opt) => {
-			result[select.name] = opt.value;
-		});
-	});
-
-	return result;
-}
-
-function serializeForm(obj) {
-	let result = Array.prototype.map.call(
-		Object.keys(obj),
-		(key) => {
-			const k = encodeURIComponent(key);
-			const v = encodeURIComponent(obj[key]);
-			return `${k}=${v}`;
-		}
-	).join('&');
-	
-	return result;
-}
-
-function promiseXHR(method, url, form) {
-	const promise = new Promise((resolve, reject) => {
-		const xhr = new XMLHttpRequest();
-
-		xhr.addEventListener('load', (e) => {
-			const xhr = e.target;
-			if (xhr.status >= 200 && xhr.status < 300) {
-				resolve(xhr.response);
-			} else {
-				reject(xhr.statusText);
-			}
-		});
-
-		xhr.addEventListener('error', e => {
-			const xhr = e.target;
-			reject(xhr.statusText);
-		});
-
-		xhr.open(method, url, true);
-
-		
-		if (form) {
-			xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-			xhr.send( serializeForm(form) );
-		} else {
-			xhr.send();
-		}
-	});
-	return promise;
-
-}
-
-function getDocument(url) {
-	return promiseXHR('GET', url);
-}
-
-function postForm(url, form) {
-	return promiseXHR('POST', url, form);
-}
-
-function getBookmarkEditPage(id) {
-	if (! /^\d+$/.test(id)) { return null; }
-	
-	const url = `http://www.pixiv.net/bookmark_add.php?type=illust&illust_id=${id}`;
-	return getDocument(url);
-}
-
-function getIllustPage(id) {
-	if (! /^\d+$/.test(id)) { return null; }
-
-	const url = `http://www.pixiv.net/member_illust.php?mode=medium&illust_id=${id}`;
-	return getDocument(url);
-}
-
-function preventScroll(ev) {
-	window.scrollTo(window.pageXOffset, window.pageYOffset);
-}
-
-function onBookmarkSubmit(ev) {
-	const form = ev.target;
-
-	async( (function *() {
-		window.addEventListener('scroll', preventScroll);
-		overlay.textContent = 'ブックマークしています...';
-		document.body.appendChild(overlay);
-
-		const formObj = formToObj(form);
-		yield postForm(form.action, formObj);
-
-		overlay.textContent = '完了しました!';
-		yield sleep(200);
-		document.body.removeChild(overlay);
-		window.removeEventListener('scroll', preventScroll);
-
-		// change bgcolor if its tag doesn't have a bookmark page tag;
-		const qstr_match = location.href.match(/[?&]tag=([^&#]*)/);
-		const input_tag = document.querySelector('#input_tag');
-
-		if (qstr_match &&
-			input_tag.value.replace(/\s+/g, '').length !== 0 &&
-			! input_tag.value.includes(decodeURI(qstr_match[1]))
-		) {
-			const id = formObj['id'];
-			const works = document.querySelector('ul._image-items');
-			const links = works.querySelectorAll('li.image-item > a.work');
-			const found = Array.prototype.find.call(links, (link) => {
-				return link.href.includes(id);
-			});
-
-			if (found) {
-				found.parentNode.style.backgroundColor = 'rgba(0, 0, 0, 0.4)';
-			}
-		}
-
-		document.querySelector("#bookark-modal-container > div > div").click();
-	})() );
-
-	ev.preventDefault();
-}
-
-function removeBookmarkModalContainer() {
-	const currentModalElem =
-		document.querySelector(`div#${modalContainerId}`);
-	if (currentModalElem) { currentModalElem.remove(); }
-}
-
-function* setBookmarkTags(id) {
-	const input_tag = document.querySelector('#input_tag');
-
-	const content = yield getBookmarkEditPage(id);
-	const doc = document.createElement('html');
-	doc.innerHTML = content;
-
-	const bookmark_tag = doc.querySelector('#input_tag');
-	const tags = bookmark_tag.value;
-	if (tags.length > 0) {
-		input_tag.value = tags;
-	}
-
-	const qstr_match = location.href.match(/[?&]rest=hide/);
-	if (qstr_match) {
-		const qstr = 'div.bookmark-add-modal input[type="radio"][value="1"]';
-		const hide_button = document.querySelector(qstr);
-		hide_button.click();
-	}
-}
-
-function *showBookmarkModal(id) {
-	// fetch illust page to show modal
-	const content = yield getIllustPage(id);
-	const doc = document.createElement('html');
-	doc.innerHTML = content;
-
-	const modalElem = doc.querySelector('#wrapper > div.bookmark-add-modal');
-	const tagsContainer = doc.querySelector('span.tags-container');
-
-	// append modal elements
-	const modalContainer = document.createElement('div');
-	modalContainer.id = modalContainerId;
-	modalContainer.appendChild(modalElem);
-	modalContainer.appendChild(tagsContainer);
-	modalElem.querySelector('form').addEventListener('submit', onBookmarkSubmit);
-
-	removeBookmarkModalContainer();
-	document.body.appendChild(modalContainer);
-
-	// show bookmark modal
-	location.assign('javascript: pixiv.bookmarkModal.initialize();');
-
-	// wait for generation of #input_tag
-	yield polling(() => document.querySelector('#input_tag'), 50, 200, 50*200); // 50ms * 200times
-
-	yield* setBookmarkTags(id);
-
-	// PixivAutoTag.user.js
-	window.dispatchEvent(new CustomEvent('PixivAutoTag.generateButtons'));
-	window.dispatchEvent(new CustomEvent('PixivAutoTag.autoTag'));
-}
-
-function rewriteEditLinks() {
-	const query = 'a.edit-work';
-	const editLinks = document.querySelectorAll(query);
-
-	Array.prototype.forEach.call(editLinks, (link) => {
-		if (link.href.match(/^javascript/)) { return; }
-		const id = link.href.match(/_id=(\d+)/)[1];
-
-		link.addEventListener('click', (ev) => {
-			async(showBookmarkModal(id));
-			ev.preventDefault();
-		});
-		link.href = 'javascript:void(0);';
-	});
-}
-
-(function () {
-	document.addEventListener('AutoPagerize_DOMNodeInserted', rewriteEditLinks, false);
-	document.addEventListener('AutoPatchWork.DOMNodeInserted', rewriteEditLinks, false);
-	document.addEventListener('AutoPagerAfterInsert', rewriteEditLinks, false);
-
-	rewriteEditLinks();
+  if (location.href.startsWith('https://www.pixiv.net/artworks/') ||
+      location.href.startsWith('https://www.pixiv.net/novel/show.php')
+     )
+  {
+    window.addEventListener('keydown', ev => {
+      if (ev.key === 'B' && ev.shiftKey) {
+        ev.stopPropagation();
+        ev.preventDefault();
+        const url = bookmarkUrl();
+        openModal(url);
+      }
+    });
+  }
+  setInterval(() => {
+    [...document.querySelectorAll('a[href^="/bookmark_add.php"]')].forEach((link) => {
+      const url = link.href;
+      link.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        openModal(url)
+      });
+      link.href = 'javascript:void(0);';
+    });
+  }, 1000);
 })();

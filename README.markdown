@@ -1,14 +1,28 @@
-PixivBookmarkModal.user.js : ブックマーク一覧でブックマークを編集
+PixivBookmarkModal.user.js : モーダルウィンドウで pixiv のブックマークを編集
 =====
 
-これはなに？
------
-このUserScriptは、<http://www.pixiv.net/bookmark.php> のようなページで
-ブックマーク編集のモーダルウィンドウを表示します。
+モーダルウィンドウ上で、pixiv の ブックマークを編集できる UserScript です。
+
+次の場合に、モーダルウィンドウで pixiv のブックマーク編集画面を開きます:
+
+* 作品ページで、ブックマークボタンをクリック
+* 作品ページで、`Shift+B`を入力
+* ブックマークの一覧で編集ボタンをクリック
 
 導入方法
 ----
-UserScriptの導入の仕方は、ググってください。
+
+1. UserScript 拡張機能を入手してください
+	* [Greasemonkey](https://www.greasespot.net/) (FLOSS, Firefox only)
+	* [Violentmonkey](https://violentmonkey.github.io/) (FLOSS, multi-platform)
+	* [Tampermonkey](https://www.tampermonkey.net/) (Proprietary, multi-platform)
+	* もしくは、Chrome/Chromium ネイティブサポートを利用
+		* [pixiv_bookmark_modal.user.js](https://syusui-s.github.io/PixivBookmarkModal.user.js/pixiv_bookmark_modal.user.js) をダウンロード
+		* `chrome://extensions/` を開く
+		* 画面にファイルをドラッグ & ドロップ
+
+1. 次のリンクを開いてください
+	* <https://syusui-s.github.io/PixivBookmarkModal.user.js/pixiv_bookmark_modal.user.js>
 
 PixivAutoTag.user.js との連携
 ----
@@ -17,4 +31,4 @@ PixivAutoTag.user.js との連携
 
 ライセンス
 ----
-MIT Licenseで公開します。
+AGPL-3.0以降でライセンスします。
