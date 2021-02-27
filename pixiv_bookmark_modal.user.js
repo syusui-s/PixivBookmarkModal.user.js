@@ -4,11 +4,15 @@
 // @description  Pixivのブックマークモーダルをタグ一覧ページ/作品ページで表示する
 // @namespace    https://github.com/syusui-s/PixivBookmarkModal.user.js
 // @homepage     https://syusui-s.github.io/PixivBookmarkModal.user.js
-// @version      1.0.0
+// @version      1.1.0
+// @match        https://www.pixiv.net/
+// @match        https://www.pixiv.net/manga/
+// @match        https://www.pixiv.net/novel/
 // @match        https://www.pixiv.net/artworks/*
 // @match        https://www.pixiv.net/novel/show.php*
 // @match        https://www.pixiv.net/users/*/bookmarks/artworks*
 // @match        https://www.pixiv.net/users/*/bookmarks/novels*
+// @match        https://www.pixiv.net/ranking.php*
 // @grant        none
 // @updateURL    https://syusui-s.github.io/PixivBookmarkModal.user.js/pixiv_bookmark_modal.user.js
 // @downloadURL  https://syusui-s.github.io/PixivBookmarkModal.user.js/pixiv_bookmark_modal.user.js
@@ -43,22 +47,33 @@
     return e;
   };
 
-  const bookmarkUrl = () => {
-    const url = new URL(location.href);
+  const xPathSelectorAllUnordered = (xpath, doc) => {
+    const xPathResult = document.evaluate(xpath, doc, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE);
+    const results = [];
+    for (;;) {
+      const node = xPathResult.iterateNext();
+      if (node == undefined) break;
+      results.push(node);
+    }
+    return results;
+  };
+
+  const bookmarkUrl = (urlString) => {
+    const url = new URL(urlString);
     if (url.pathname.startsWith('/artworks/')) {
-      const id = new URL(location.href).pathname.match(/^\/artworks\/(\d+)$/)?.[1];
+      const id = url.pathname.match(/^\/artworks\/(\d+)$/)?.[1];
       if (!id) throw new Error('Failed to obtain artwork id from URL');
       return `https://www.pixiv.net/bookmark_add.php?type=illust&illust_id=${id}`;
     } else if (url.pathname === '/novel/show.php') {
       const id = url.searchParams.get('id');
       if (!id) throw new Error('Failed to obtain novel id from URL');
-      return `https://www.pixiv.net/bookmark_add.php?id=${id}`;
+      return `https://www.pixiv.net/novel/bookmark_add.php?id=${id}`;
     } else {
-      throw new Error('bookmarkUrl() is not non-exhaustive');
+      throw new Error(`bookmarkUrl() is not non-exhaustive: ${urlString}`);
     }
   };
 
-  const openModal = (url) => {
+  const openModal = (url, onAdded = () => {}) => {
     const iframeRef = useRef();
 
     const close = () => root.remove();
@@ -80,7 +95,14 @@
         w.document.body.style.paddingTop = '70px';
         w.document.querySelector('#js-mount-point-header').style.display = 'none';
         w.document.querySelector('#header-banner').style.top = '10px';
-        w.addEventListener('unload', () => close());
+
+        let submitted = false;
+        const form = w.document.querySelector('.bookmark-detail-unit > form');
+        form.addEventListener('submit', () => { submitted = true; });
+        w.addEventListener('unload', () => {
+          close();
+          if (submitted) onAdded();
+        });
       });
     }
 
@@ -101,19 +123,56 @@
       if (ev.key === 'B' && ev.shiftKey) {
         ev.stopPropagation();
         ev.preventDefault();
-        const url = bookmarkUrl();
+        const url = bookmarkUrl(location.href);
         openModal(url);
       }
     });
   }
-  setInterval(() => {
-    [...document.querySelectorAll('a[href^="/bookmark_add.php"]')].forEach((link) => {
-      const url = link.href;
-      link.addEventListener('click', (ev) => {
-        ev.preventDefault();
-        openModal(url)
+
+  window.addEventListener('DOMContentLoaded', (ev) => {
+    const attached = 'pixiv_bookmark_modal_attached';
+    const changeSVGColor = (svg) => () => svg.style.color = 'rgb(255, 64, 96)';
+    setInterval(() => {
+      [
+        //// for a work page
+        // * <button> is for not bookmarked
+        // * <a> is for bookmarked
+        // <https://www.pixiv.net/artworks/87816551>
+        ...[...document.querySelectorAll(`button.gtm-main-bookmark:not(.${attached}), a[href^="/bookmark_add.php"]:not(.${attached})`)].map((link) => {
+          const workUrl = location.href; // NOTE use carefully
+          const svg = link.querySelector('svg');
+          return { link, workUrl, button: link, onAdded: changeSVGColor(svg) };
+        }),
+        // for pixiv.net top page <https://www.pixiv.net/>
+        // and bookmark list
+        // and it works in carousel
+        ...xPathSelectorAllUnordered(`//a[starts-with(@href, "/artworks/") and not(contains(@class, "${attached}"))]`, document.body).flatMap((link) => {
+          const [button] = xPathSelectorAllUnordered('(following-sibling::*//button)[1]', link);
+          if (!button) return [];
+          const svg = button.querySelector('svg');
+          return { link, workUrl: link.href, button, onAdded: changeSVGColor(svg) };
+        }),
+        ...xPathSelectorAllUnordered(`//a[starts-with(@href, "/novel/show.php?id=") and not(contains(@class, "${attached}"))]`, document.body).flatMap((link) => {
+          const [button] = xPathSelectorAllUnordered('(following::*//button)[1]', link);
+          if (!button) return [];
+          const svg = button.querySelector('svg');
+          return { link, workUrl: link.href, button, onAdded: changeSVGColor(svg) };
+        }),
+        ...[...document.querySelectorAll(`.ranking-image-item > a.work:not(.${attached})`)].flatMap((link) => {
+          const button = link.querySelector('._one-click-bookmark');
+          if (!button) { console.error("failed to find bookmark button in ranking page"); return []; }
+          const onAdded = () => button.classList.add('on');
+          return { link, workUrl: link.href, button, onAdded };
+        }),
+      ].forEach(({ link, workUrl, button, onAdded }) => {
+        const url = bookmarkUrl(workUrl);
+        if (!button) return;
+        button.addEventListener('contextmenu', (ev) => {
+          ev.preventDefault();
+          openModal(url, onAdded);
+        });
+        link.classList.add(attached);
       });
-      link.href = 'javascript:void(0);';
-    });
-  }, 1000);
+    }, 1000);
+  });
 })();
