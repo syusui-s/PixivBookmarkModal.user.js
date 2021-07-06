@@ -4,7 +4,7 @@
 // @description  Pixivのブックマークモーダルをタグ一覧ページ/作品ページで表示する
 // @namespace    https://github.com/syusui-s/PixivBookmarkModal.user.js
 // @homepage     https://syusui-s.github.io/PixivBookmarkModal.user.js
-// @version      1.1.0
+// @version      1.1.1
 // @match        https://www.pixiv.net/
 // @match        https://www.pixiv.net/manga/
 // @match        https://www.pixiv.net/novel/
@@ -13,6 +13,7 @@
 // @match        https://www.pixiv.net/users/*/bookmarks/artworks*
 // @match        https://www.pixiv.net/users/*/bookmarks/novels*
 // @match        https://www.pixiv.net/ranking.php*
+// @match        https://www.pixiv.net/bookmark_new_illust.php
 // @grant        none
 // @updateURL    https://syusui-s.github.io/PixivBookmarkModal.user.js/pixiv_bookmark_modal.user.js
 // @downloadURL  https://syusui-s.github.io/PixivBookmarkModal.user.js/pixiv_bookmark_modal.user.js
@@ -73,6 +74,62 @@
     }
   };
 
+  const attached = 'pixiv_bookmark_modal_attached';
+  const changeSVGColor = (svg) => () => svg.style.color = 'rgb(255, 64, 96)';
+
+  //// for a work page
+  // * <button> is for not bookmarked
+  // * <a> is for bookmarked
+  // <https://www.pixiv.net/artworks/87816551>
+  const findBookmarkButtonsInWorkPage = () =>
+    [...document.querySelectorAll(`button.gtm-main-bookmark:not(.${attached}), a[href^="/bookmark_add.php"]:not(.${attached})`)]
+      .map((link) => {
+        const workUrl = location.href; // NOTE use carefully
+        const svg = link.querySelector('svg');
+        return { link, workUrl, button: link, onAdded: changeSVGColor(svg) };
+      });
+
+  // for pixiv.net top page <https://www.pixiv.net/>
+  // and it works in carousel
+  // and bookmark list
+  const findBookmarkButtonsInIllustTopPageAndBookmarkList = () =>
+    xPathSelectorAllUnordered(`//a[starts-with(@href, "/artworks/") and not(contains(@class, "${attached}"))]`, document.body)
+      .flatMap((link) => {
+        const [button] = xPathSelectorAllUnordered('(following-sibling::*//button)[1]', link);
+        if (!button) return [];
+        const svg = button.querySelector('svg');
+        return { link, workUrl: link.href, button, onAdded: changeSVGColor(svg) };
+      });
+
+  // new illust list
+  const findBookmarkButtonsInNewIllustPage = () =>
+    xPathSelectorAllUnordered(`//a[starts-with(@href, "/artworks/") and not(contains(@class, "${attached}"))]`, document.body)
+      .flatMap((link) => {
+        const [button] = xPathSelectorAllUnordered('(following-sibling::*//div[contains(@class, "_one-click-bookmark")])[1]', link);
+        if (!button) return [];
+        const onAdded = () => button.classList.add('on');
+        return { link, workUrl: link.href, button, onAdded };
+      });
+
+  // for pixiv.net novels top page <https://www.pixiv.net/novel/>
+  const findBookmarkButtonsInNovelTopPage = () =>
+    xPathSelectorAllUnordered(`//a[starts-with(@href, "/novel/show.php?id=") and not(contains(@class, "${attached}"))]`, document.body)
+      .flatMap((link) => {
+        const [button] = xPathSelectorAllUnordered('(following::*//button)[1]', link);
+        if (!button) return [];
+        const svg = button.querySelector('svg');
+        return { link, workUrl: link.href, button, onAdded: changeSVGColor(svg) };
+      });
+
+  const findBookmarkButtonsInRanking = () =>
+    [...document.querySelectorAll(`.ranking-image-item > a.work:not(.${attached})`)]
+      .flatMap((link) => {
+        const button = link.querySelector('._one-click-bookmark');
+        if (!button) { console.error("failed to find bookmark button in ranking page"); return []; }
+        const onAdded = () => button.classList.add('on');
+        return { link, workUrl: link.href, button, onAdded };
+      });
+
   const openModal = (url, onAdded = () => {}) => {
     const iframeRef = useRef();
 
@@ -115,10 +172,10 @@
     });
   };
 
-  if (location.href.startsWith('https://www.pixiv.net/artworks/') ||
-      location.href.startsWith('https://www.pixiv.net/novel/show.php')
-     )
-  {
+  if (
+    location.href.startsWith('https://www.pixiv.net/artworks/') ||
+    location.href.startsWith('https://www.pixiv.net/novel/show.php')
+  ) {
     window.addEventListener('keydown', ev => {
       if (ev.key === 'B' && ev.shiftKey) {
         ev.stopPropagation();
@@ -130,40 +187,12 @@
   }
 
   window.addEventListener('DOMContentLoaded', (ev) => {
-    const attached = 'pixiv_bookmark_modal_attached';
-    const changeSVGColor = (svg) => () => svg.style.color = 'rgb(255, 64, 96)';
     setInterval(() => {
       [
-        //// for a work page
-        // * <button> is for not bookmarked
-        // * <a> is for bookmarked
-        // <https://www.pixiv.net/artworks/87816551>
-        ...[...document.querySelectorAll(`button.gtm-main-bookmark:not(.${attached}), a[href^="/bookmark_add.php"]:not(.${attached})`)].map((link) => {
-          const workUrl = location.href; // NOTE use carefully
-          const svg = link.querySelector('svg');
-          return { link, workUrl, button: link, onAdded: changeSVGColor(svg) };
-        }),
-        // for pixiv.net top page <https://www.pixiv.net/>
-        // and bookmark list
-        // and it works in carousel
-        ...xPathSelectorAllUnordered(`//a[starts-with(@href, "/artworks/") and not(contains(@class, "${attached}"))]`, document.body).flatMap((link) => {
-          const [button] = xPathSelectorAllUnordered('(following-sibling::*//button)[1]', link);
-          if (!button) return [];
-          const svg = button.querySelector('svg');
-          return { link, workUrl: link.href, button, onAdded: changeSVGColor(svg) };
-        }),
-        ...xPathSelectorAllUnordered(`//a[starts-with(@href, "/novel/show.php?id=") and not(contains(@class, "${attached}"))]`, document.body).flatMap((link) => {
-          const [button] = xPathSelectorAllUnordered('(following::*//button)[1]', link);
-          if (!button) return [];
-          const svg = button.querySelector('svg');
-          return { link, workUrl: link.href, button, onAdded: changeSVGColor(svg) };
-        }),
-        ...[...document.querySelectorAll(`.ranking-image-item > a.work:not(.${attached})`)].flatMap((link) => {
-          const button = link.querySelector('._one-click-bookmark');
-          if (!button) { console.error("failed to find bookmark button in ranking page"); return []; }
-          const onAdded = () => button.classList.add('on');
-          return { link, workUrl: link.href, button, onAdded };
-        }),
+        ...findBookmarkButtonsInWorkPage(),
+        ...findBookmarkButtonsInIllustTopPageAndBookmarkList(),
+        ...findBookmarkButtonsInNovelTopPage(),
+        ...findBookmarkButtonsInRanking(),
       ].forEach(({ link, workUrl, button, onAdded }) => {
         const url = bookmarkUrl(workUrl);
         if (!button) return;
