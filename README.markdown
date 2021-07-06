@@ -5,14 +5,16 @@ PixivBookmarkModal.user.js : モーダルウィンドウで pixiv のブック�
 
 次の場合に、モーダルウィンドウで pixiv のブックマーク編集画面を開きます:
 
-* 作品ページ
+* [作品ページ](https://www.pixiv.net/artworks/20)
 	* ブックマークボタンを右クリック
 	* 作品ページで、`Shift+B`を入力
-* ブックマークの一覧
+* [ブックマークの一覧](https://www.pixiv.net/bookmark.php)
 	* 編集ボタンを右クリック
-* トップページ
+* [トップページ](https://www.pixiv.net/)
 	* ブックマークボタンを右クリック
-* ランキングページ
+* [ランキングページ](https://www.pixiv.net/ranking.php)
+	* ブックマークボタンを右クリック
+* [フォロー新着作品](https://www.pixiv.net/bookmark_new_illust.php)
 	* ブックマークボタンを右クリック
 
 導入方法
