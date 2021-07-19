@@ -39,6 +39,10 @@ PixivAutoTag.user.js との連携
 <https://github.com/syusui-s/PixivAutoTag.user.js> を導入すると、
 モーダルウィンドウ上でブックマークタグの自動タグ付けを実行します。
 
+もしもバグを見つけたら
+----
+[GitHub Issueに登録](https://github.com/syusui-s/PixivBookmarkModal.user.js/issues/new)してください
+
 ライセンス
 ----
 AGPL-3.0以降でライセンスします。
