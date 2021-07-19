@@ -3,6 +3,8 @@ PixivBookmarkModal.user.js : モーダルウィンドウで pixiv のブック�
 
 モーダルウィンドウ上で、pixiv の ブックマークを編集できる UserScript です。
 
+This UserScript allows you to edit a [pixiv](https://pixiv.net/) bookmark in a modal window.
+
 次の場合に、モーダルウィンドウで pixiv のブックマーク編集画面を開きます:
 
 * [作品ページ](https://www.pixiv.net/artworks/20)
