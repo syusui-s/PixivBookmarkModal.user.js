@@ -41,7 +41,7 @@ PixivAutoTag.user.js との連携
 
 もしもバグを見つけたら
 ----
-[GitHub Issueに登録](https://github.com/syusui-s/PixivBookmarkModal.user.js/issues/new)してください
+[GitHub Issueに登録](https://github.com/syusui-s/PixivBookmarkModal.user.js/issues/new/choose)してください
 
 ライセンス
 ----
