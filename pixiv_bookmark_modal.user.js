@@ -4,7 +4,7 @@
 // @description  Pixivのブックマークモーダルをタグ一覧ページ/作品ページで表示する
 // @namespace    https://github.com/syusui-s/PixivBookmarkModal.user.js
 // @homepage     https://syusui-s.github.io/PixivBookmarkModal.user.js
-// @version      1.1.1
+// @version      1.1.2
 // @match        https://www.pixiv.net/
 // @match        https://www.pixiv.net/manga/
 // @match        https://www.pixiv.net/novel/
@@ -13,7 +13,7 @@
 // @match        https://www.pixiv.net/users/*/bookmarks/artworks*
 // @match        https://www.pixiv.net/users/*/bookmarks/novels*
 // @match        https://www.pixiv.net/ranking.php*
-// @match        https://www.pixiv.net/bookmark_new_illust.php
+// @match        https://www.pixiv.net/bookmark_new_illust.php*
 // @grant        none
 // @updateURL    https://syusui-s.github.io/PixivBookmarkModal.user.js/pixiv_bookmark_modal.user.js
 // @downloadURL  https://syusui-s.github.io/PixivBookmarkModal.user.js/pixiv_bookmark_modal.user.js
@@ -190,6 +190,7 @@
     setInterval(() => {
       [
         ...findBookmarkButtonsInWorkPage(),
+        ...findBookmarkButtonsInNewIllustPage(),
         ...findBookmarkButtonsInIllustTopPageAndBookmarkList(),
         ...findBookmarkButtonsInNovelTopPage(),
         ...findBookmarkButtonsInRanking(),
