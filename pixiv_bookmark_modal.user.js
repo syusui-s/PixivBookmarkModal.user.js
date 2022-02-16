@@ -4,14 +4,14 @@
 // @description  Pixivのブックマークモーダルをタグ一覧ページ/作品ページで表示する
 // @namespace    https://github.com/syusui-s/PixivBookmarkModal.user.js
 // @homepage     https://syusui-s.github.io/PixivBookmarkModal.user.js
-// @version      1.1.2
+// @version      1.1.3
 // @match        https://www.pixiv.net/
 // @match        https://www.pixiv.net/manga/
 // @match        https://www.pixiv.net/novel/
+// @match        https://www.pixiv.net/tags/*
 // @match        https://www.pixiv.net/artworks/*
 // @match        https://www.pixiv.net/novel/show.php*
-// @match        https://www.pixiv.net/users/*/bookmarks/artworks*
-// @match        https://www.pixiv.net/users/*/bookmarks/novels*
+// @match        https://www.pixiv.net/users/*
 // @match        https://www.pixiv.net/ranking.php*
 // @match        https://www.pixiv.net/bookmark_new_illust.php*
 // @grant        none
