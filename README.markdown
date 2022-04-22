@@ -22,7 +22,7 @@ This UserScript allows you to edit a [pixiv](https://pixiv.net/) bookmark in a m
 導入方法
 ----
 
-1. UserScript 拡張機能を入手してください
+1. UserScript 拡張機能を入手してください  
 	 <img src="https://user-images.githubusercontent.com/1228033/163796941-9da266b3-c2a6-4827-949e-d617a8adb934.png" width="480" />
 	* [Greasemonkey](https://www.greasespot.net/) (FLOSS, Firefox only)
 	* [Violentmonkey](https://violentmonkey.github.io/) (FLOSS, multi-platform)
